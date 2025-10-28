@@ -10,9 +10,6 @@ namespace Producer.src.Utils
 
         public string GetRandomVehicle()
         {
-            if (vehicles == null || vehicles.Length == 0)
-                throw new InvalidOperationException("Vehicle list is empty.");
-
             int idx = _random.Next(vehicles.Length);
             return vehicles[idx];
         }

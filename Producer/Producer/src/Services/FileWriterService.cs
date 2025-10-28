@@ -20,7 +20,7 @@ namespace Producer.src.Services
         public FileWriterService(
             string outputDirectory,
             bool useCompression = false, 
-            int maxFileSizeMb = 5,
+            int maxFileSizeMb = 10,
             int rotationSeconds = 30,
             int backpressureThreshold = 100)
         {

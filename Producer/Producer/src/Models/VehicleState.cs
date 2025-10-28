@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Producer.src.Models
 {
-    internal class VehicleState
+    public class VehicleState
     {
         public DateTime LastTimeStamp { get; set; }
         public double FuelPct { get; set; }
