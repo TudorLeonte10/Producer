@@ -1,4 +1,5 @@
-﻿using Producer.src.Utils;
+﻿using Producer.src.Interfaces;
+using Producer.src.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Producer.src.Services
 {
-    public class MetadataWriter
+    public class MetadataWriter : IMetadataWriter
     {
         public async Task WriteMetadataAsync(string finalPath, int recordCount, bool useCompression)
         {
@@ -27,5 +28,6 @@ namespace Producer.src.Services
             var metaJson = JsonSerializer.Serialize(metaData, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(metaPath, metaJson, Encoding.UTF8);
         }
+
     }
 }

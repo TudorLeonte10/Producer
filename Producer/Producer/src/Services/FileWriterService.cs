@@ -1,15 +1,16 @@
-﻿using Producer.src.Models;
+﻿using Producer.src.Interfaces;
+using Producer.src.Models;
 using Producer.src.Utils;
 using Producer.src.Utils.Producer.src.Utils;
 using System.Text;
 
 namespace Producer.src.Services
 {
-    public class FileWriterService
+    public class FileWriterService : IFileWriterService
     {
         private readonly string _outputDirectory;
-        private readonly MetadataWriter _metadataWriter;
-        private TelemetryStreamWriter? _streamWriter;  
+        private readonly IMetadataWriter _metadataWriter;
+        private ITelemetryStreamWriter? _streamWriter;  
         private readonly FileRotationManager _rotationManager;
 
         private string _tmpPath = string.Empty;
@@ -19,7 +20,7 @@ namespace Producer.src.Services
 
         public FileWriterService(
             string outputDirectory,
-            bool useCompression = false, 
+            IMetadataWriter metadataWriter,
             int maxFileSizeMb = 10,
             int rotationSeconds = 30,
             int backpressureThreshold = 100)
@@ -27,7 +28,7 @@ namespace Producer.src.Services
             _outputDirectory = outputDirectory;
             Directory.CreateDirectory(_outputDirectory);
 
-            _metadataWriter = new MetadataWriter();
+            _metadataWriter = metadataWriter;
             _rotationManager = new FileRotationManager(maxFileSizeMb, TimeSpan.FromSeconds(rotationSeconds));
             _backpressureThreshold = backpressureThreshold;
         }

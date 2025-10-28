@@ -1,4 +1,5 @@
-﻿using Producer.src.Models;
+﻿using Producer.src.Interfaces;
+using Producer.src.Models;
 using System;
 using System.Collections.Generic;
 using System.IO.Compression;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Producer.src.Services
 {
-    public class TelemetryStreamWriter
+    public class TelemetryStreamWriter : ITelemetryStreamWriter
     {
         private FileStream? _baseStream;
         private Stream? _stream;
