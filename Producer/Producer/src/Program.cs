@@ -15,64 +15,57 @@ var host = Host.CreateDefaultBuilder(args)
     {
         var cfg = context.Configuration;
         var outputDir = cfg["Paths:Inbox"] ?? @"C:\Producer\inbox";
-        bool useCompression = bool.Parse(cfg["ProducerSettings:UseCompression"] ?? "true");
         int maxFileSizeMb = int.Parse(cfg["ProducerSettings:MaxFileSizeMb"] ?? "5");
         int rotationSeconds = int.Parse(cfg["ProducerSettings:RotationSeconds"] ?? "30");
         int backpressureThreshold = int.Parse(cfg["ProducerSettings:BackpressureThreshold"] ?? "100");
 
         services.AddSingleton<IMetadataWriter, MetadataWriter>();
-        services.AddSingleton<IFileWriterService>(provider =>
-            new FileWriterService(
-                outputDirectory: outputDir,
-                metadataWriter: provider.GetRequiredService<IMetadataWriter>(),
-                maxFileSizeMb: maxFileSizeMb,
-                rotationSeconds: rotationSeconds,
-                backpressureThreshold: backpressureThreshold
-            )
-        );
-
-        services.AddSingleton<TelemetryGenerator>();
-        services.AddSingleton<GenerateRandomVehicle>();
     })
     .Build();
 
-var writer = host.Services.GetRequiredService<IFileWriterService>();
-var generator = host.Services.GetRequiredService<TelemetryGenerator>();
-var vehicleGenerator = host.Services.GetRequiredService<GenerateRandomVehicle>();
-
-Console.WriteLine("Producer started — generating telemetry data continuously.");
-
-Console.WriteLine("Type 'exit' and press Enter to stop.\n");
-
-bool running = true;
+var cfg = host.Services.GetRequiredService<IConfiguration>();
+var metadataWriter = host.Services.GetRequiredService<IMetadataWriter>();
+string outputDir = cfg["Paths:Inbox"] ?? @"C:\Producer\inbox";
+Directory.CreateDirectory(outputDir);
 
 using var cts = new CancellationTokenSource();
 var token = cts.Token;
 
-var produceTask = Task.Run(async () =>
+var vehicleIds = new[] { "V001", "V002", "V003", "V004", "V005", "V006", "V007", "V008", "V009", "V0010" };
+
+Console.WriteLine($"Starting {vehicleIds.Length} producers...");
+Console.WriteLine("Type 'exit' and press Enter to stop.\n");
+
+var producerTasks = vehicleIds.Select(vehicleId => Task.Run(async () =>
 {
+    var generator = new TelemetryGenerator(); 
+    var writer = new FileWriterService(
+        outputDirectory: outputDir,
+        metadataWriter: metadataWriter,
+        maxFileSizeMb: 5,
+        rotationSeconds: 30,
+        backpressureThreshold: 100
+    );
+
     try
     {
         while (!token.IsCancellationRequested)
         {
-            string vehicleId = vehicleGenerator.GetRandomVehicle();
-
             var record = generator.GenerateTelemetry(vehicleId);
-
-            await writer.WriteAsync(record, record.VehicleId);
+            await writer.WriteAsync(record, vehicleId, token);
         }
     }
-    catch (IOException ex)
+    catch (TaskCanceledException) { }
+    catch (Exception ex)
     {
-        Console.WriteLine($"Error: {ex.Message}");
+        Console.WriteLine($"Error in {vehicleId}: {ex.Message}");
     }
     finally
     {
-        await writer.CloseAsync();
-        Console.WriteLine("Producer stopped gracefully.");
+        await writer.CloseAsync(token);
+        Console.WriteLine($"Producer for {vehicleId} stopped gracefully.");
     }
-
-});
+}, token)).ToArray();
 
 while (true)
 {
@@ -84,4 +77,6 @@ while (true)
     }
 }
 
-await produceTask;
+await Task.WhenAll(producerTasks);
+
+Console.WriteLine("All producers stopped.");

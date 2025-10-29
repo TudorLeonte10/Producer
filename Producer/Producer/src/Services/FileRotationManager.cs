@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Producer.src.Services
 {
@@ -27,14 +23,18 @@ namespace Producer.src.Services
 
         public bool NeedsRotation()
         {
-            if(_currentFileStream == null)
-            {
+            if (_currentFileStream == null)
                 return true;
-            }
+
             bool sizeExceeded = _currentFileStream.Length >= _maxFileSizeMb * 1024 * 1024;
             bool timeExceeded = (DateTime.UtcNow - _fileStart) >= _maxInterval;
+
+            if (sizeExceeded || timeExceeded)
+            {
+                Console.WriteLine($"Rotating file... SizeExceeded={sizeExceeded}, TimeExceeded={timeExceeded}");
+            }
+
             return sizeExceeded || timeExceeded;
         }
     }
-
 }

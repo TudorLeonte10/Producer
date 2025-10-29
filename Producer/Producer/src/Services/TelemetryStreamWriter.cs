@@ -1,9 +1,6 @@
 ﻿using Producer.src.Interfaces;
 using Producer.src.Models;
-using System;
-using System.Collections.Generic;
 using System.IO.Compression;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -44,6 +41,7 @@ namespace Producer.src.Services
         {
             var json = JsonSerializer.Serialize(record);
             await _writer!.WriteLineAsync(json);
+            await _writer.FlushAsync(); // ✅ scrie imediat pe disc
             RecordCount++;
         }
 
@@ -60,5 +58,4 @@ namespace Producer.src.Services
             }
         }
     }
-
 }
