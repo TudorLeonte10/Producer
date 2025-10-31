@@ -35,21 +35,19 @@ namespace Producer.src.Services
 
         public async Task WriteAsync(TelemetryRecord record, string vehicleId, CancellationToken ct = default)
         {
-            // ✅ Creează fișier imediat dacă nu există
             if (_streamWriter == null)
                 await RotateFileAsync(vehicleId, ct);
 
-            // ✅ Rotește când timpul sau dimensiunea sunt depășite
             if (_rotationManager.NeedsRotation())
                 await RotateFileAsync(vehicleId, ct);
 
-            // ✅ Scrie recordul curent
             if (_streamWriter != null)
                 await _streamWriter.WriteRecordAsync(record);
         }
 
         private async Task RotateFileAsync(string vehicleId, CancellationToken ct)
         {
+            Console.WriteLine("File rotation triggered...");
             var fileCount = Directory.GetFiles(_outputDirectory, "*.jsonl*").Length;
             if (fileCount > _backpressureThreshold)
             {
@@ -57,7 +55,6 @@ namespace Producer.src.Services
                 await Task.Delay(3000, ct);
             }
 
-            // Închide fișierul curent dacă există
             if (!string.IsNullOrEmpty(_tmpPath) && _streamWriter != null)
             {
                 await _streamWriter.CloseAsync();
@@ -69,7 +66,7 @@ namespace Producer.src.Services
                 );
 
                 if (File.Exists(_finalPath))
-                    FaultInjector.MaybeCorruptFile(_finalPath, 0.03);
+                    FaultInjector.MaybeCorruptFile(_finalPath, 0.2);
 
                 Console.WriteLine($"Closed and moved final file: {Path.GetFileName(_finalPath)}");
             }

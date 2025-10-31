@@ -55,8 +55,11 @@ var producerTasks = vehicleIds.Select(vehicleId => Task.Run(async () =>
             await writer.WriteAsync(record, vehicleId, token);
         }
     }
-    catch (TaskCanceledException) { }
-    catch (Exception ex)
+    catch (TaskCanceledException) 
+    {
+        Console.WriteLine("Task cancelled");
+    }
+    catch (IOException ex)
     {
         Console.WriteLine($"Error in {vehicleId}: {ex.Message}");
     }

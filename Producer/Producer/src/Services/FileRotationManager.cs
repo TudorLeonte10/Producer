@@ -29,11 +29,6 @@ namespace Producer.src.Services
             bool sizeExceeded = _currentFileStream.Length >= _maxFileSizeMb * 1024 * 1024;
             bool timeExceeded = (DateTime.UtcNow - _fileStart) >= _maxInterval;
 
-            if (sizeExceeded || timeExceeded)
-            {
-                Console.WriteLine($"Rotating file... SizeExceeded={sizeExceeded}, TimeExceeded={timeExceeded}");
-            }
-
             return sizeExceeded || timeExceeded;
         }
     }

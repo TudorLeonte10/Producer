@@ -41,7 +41,7 @@ namespace Producer.src.Services
         {
             var json = JsonSerializer.Serialize(record);
             await _writer!.WriteLineAsync(json);
-            await _writer.FlushAsync(); // ✅ scrie imediat pe disc
+            await _writer.FlushAsync(); 
             RecordCount++;
         }
 
