@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Producer.Application.Config;
+using Producer.Application.Enums;
+using Producer.Application.Factories;
 using Producer.Application.Interfaces;
 using Producer.Application.Services;
 using Producer.Infrastructure.FileSystem;
@@ -33,11 +35,23 @@ namespace Producer.Workers
             Console.WriteLine($"Starting {vehicleIds.Length} producers...");
             Console.WriteLine("Press Ctrl+C to stop.\n");
 
-            _runningTask = Task.WhenAll(vehicleIds.Select(vehicleId => RunProducer(vehicleId, token)));
+            var types = new[]
+            {
+        TelemetryStrategyType.Constant,
+        TelemetryStrategyType.Random,
+        TelemetryStrategyType.Burst
+    };
+
+            _runningTask = Task.WhenAll(vehicleIds.Select((id, index) =>
+            {
+                var strategy = TelemetryStrategyFactory.Create(types[index % types.Length]);
+                return RunProducer(id, strategy, token);
+            }));
+
             return Task.CompletedTask;
         }
 
-        private async Task RunProducer(string vehicleId, CancellationToken token)
+        private async Task RunProducer(string vehicleId, ITelemetryStrategy strategy, CancellationToken token)
         {
             var generator = new TelemetryGenerator();
             var writer = new FileWriterCoordinator(
@@ -48,13 +62,15 @@ namespace Producer.Workers
                 backpressureThreshold: _settings.BackpressureThreshold
             );
 
+            Console.WriteLine($"[{vehicleId}] using {strategy.Name} strategy");
+
             try
             {
                 while (!token.IsCancellationRequested)
                 {
                     var record = generator.GenerateTelemetry(vehicleId);
                     await writer.WriteAsync(record, vehicleId, token);
-                    //await Task.Delay(_settings.IntervalMs, token);
+                    await Task.Delay(strategy.GetNextInterval(), token);
                 }
             }
             catch (TaskCanceledException) { }
