@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Producer.src.Models
+namespace Producer.Domain.Entities
 {
     public class TelemetryRecord
     {

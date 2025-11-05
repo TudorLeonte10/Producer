@@ -1,11 +1,11 @@
-﻿using Producer.src.Models;
+﻿using Producer.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Producer.src.Services
+namespace Producer.Application.Services
 {
     public class TelemetryGenerator
     {
@@ -54,7 +54,7 @@ namespace Producer.src.Services
             double fuel = state.FuelPct - _fuelConsumptionRate * (speed / 100.0);
             double temp = _tempBase + (_random.NextDouble() * 2 - 1) * _tempVariation;
 
-            if (fuel <= 0)
+            if (fuel <= 5)
             {
                 fuel = 100.0; 
             }

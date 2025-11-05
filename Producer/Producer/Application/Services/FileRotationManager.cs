@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Producer.src.Services
+namespace Producer.Application.Services
 {
     public class FileRotationManager
     {
@@ -27,7 +27,7 @@ namespace Producer.src.Services
                 return true;
 
             bool sizeExceeded = _currentFileStream.Length >= _maxFileSizeMb * 1024 * 1024;
-            bool timeExceeded = (DateTime.UtcNow - _fileStart) >= _maxInterval;
+            bool timeExceeded = DateTime.UtcNow - _fileStart >= _maxInterval;
 
             return sizeExceeded || timeExceeded;
         }

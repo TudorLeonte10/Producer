@@ -1,5 +1,5 @@
-﻿using Producer.src.Interfaces;
-using Producer.src.Utils;
+﻿using Producer.Application.Interfaces;
+using Producer.Infrastructure.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Producer.src.Services
+namespace Producer.Infrastructure.FileSystem
 {
     public class MetadataWriter : IMetadataWriter
     {

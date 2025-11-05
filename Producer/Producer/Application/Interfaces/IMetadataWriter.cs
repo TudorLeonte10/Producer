@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Producer.src.Interfaces
+namespace Producer.Application.Interfaces
 {
     public interface IMetadataWriter
     {

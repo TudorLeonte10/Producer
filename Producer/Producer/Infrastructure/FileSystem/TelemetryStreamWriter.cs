@@ -1,11 +1,11 @@
-﻿using Producer.src.Interfaces;
-using Producer.src.Models;
+﻿using Producer.Application.Interfaces;
+using Producer.Domain.Entities;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Producer.src.Services
+namespace Producer.Infrastructure.FileSystem
 {
     public class TelemetryStreamWriter : ITelemetryStreamWriter
     {
