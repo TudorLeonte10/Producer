@@ -2,8 +2,8 @@
 using Microsoft.Extensions.Hosting;
 using Producer.Application.Config;
 using Producer.Application.Interfaces;
+using Producer.Application.Services;
 using Producer.Infrastructure.FileSystem;
-using Producer.Workers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,9 +19,14 @@ namespace Producer.Startup
             services.Configure<ProducerSettings>(
                 context.Configuration.GetSection("ProducerSettings"));
 
-            services.AddSingleton<IMetadataWriter, MetadataWriter>();
+            services.Configure<TelemetrySettings>(
+                context.Configuration.GetSection("TelemetrySettings"));
 
+            services.AddSingleton<IMetadataWriter, MetadataWriter>();
+            services.AddTransient<IFileWriterService, FileWriterCoordinator>();
+            services.AddTransient<TelemetryGenerator>();
             services.AddHostedService<ProducerManager>();
+
         }
     }
 }

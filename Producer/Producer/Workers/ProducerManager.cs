@@ -1,92 +1,87 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Producer.Application.Config;
 using Producer.Application.Enums;
 using Producer.Application.Factories;
 using Producer.Application.Interfaces;
 using Producer.Application.Services;
-using Producer.Infrastructure.FileSystem;
 
-
-namespace Producer.Workers
+public class ProducerManager : IHostedService
 {
-    public class ProducerManager : IHostedService
+    private readonly ProducerSettings _settings;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IMetadataWriter _metadataWriter;
+    private CancellationTokenSource? _cts;
+    private Task? _runningTask;
+
+    public ProducerManager(
+        IServiceProvider serviceProvider,
+        IOptions<ProducerSettings> options,
+        IMetadataWriter metadataWriter)
     {
-        private readonly ProducerSettings _settings;
-        private readonly IMetadataWriter _metadataWriter;
-        private CancellationTokenSource? _cts;
-        private Task? _runningTask;
+        _serviceProvider = serviceProvider;
+        _metadataWriter = metadataWriter;
+        _settings = options.Value;
+    }
 
-        public ProducerManager(IOptions<ProducerSettings> options, IMetadataWriter metadataWriter)
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        var vehicleIds = _settings.VehicleIds.Length > 0
+            ? _settings.VehicleIds
+            : new[] { "V001" };
+
+        Console.WriteLine($"Starting {vehicleIds.Length} producers...");
+        Console.WriteLine("Press Ctrl+C to stop.\n");
+
+        var types = new[]
         {
-            _settings = options.Value;
-            _metadataWriter = metadataWriter;
-        }
+            TelemetryStrategyType.Constant,
+            TelemetryStrategyType.Random,
+            TelemetryStrategyType.Burst
+        };
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        _runningTask = Task.WhenAll(vehicleIds.Select((id, index) =>
         {
-            _cts = new CancellationTokenSource();
-            var token = _cts.Token;
+            var strategy = TelemetryStrategyFactory.Create(types[index % types.Length]);
+            return RunProducer(id, strategy, token);
+        }));
 
-            var vehicleIds = _settings.VehicleIds.Length > 0
-                ? _settings.VehicleIds
-                : new[] { "V001" };
+        return Task.CompletedTask;
+    }
 
-            Console.WriteLine($"Starting {vehicleIds.Length} producers...");
-            Console.WriteLine("Press Ctrl+C to stop.\n");
+    private async Task RunProducer(string vehicleId, ITelemetryStrategy strategy, CancellationToken token)
+    {
+        var generator = _serviceProvider.GetRequiredService<TelemetryGenerator>();
+        var writer = _serviceProvider.GetRequiredService<IFileWriterService>();
 
-            var types = new[]
-            {
-        TelemetryStrategyType.Constant,
-        TelemetryStrategyType.Random,
-        TelemetryStrategyType.Burst
-    };
+        Console.WriteLine($"[{vehicleId}] using {strategy.Name} strategy");
 
-            _runningTask = Task.WhenAll(vehicleIds.Select((id, index) =>
-            {
-                var strategy = TelemetryStrategyFactory.Create(types[index % types.Length]);
-                return RunProducer(id, strategy, token);
-            }));
-
-            return Task.CompletedTask;
-        }
-
-        private async Task RunProducer(string vehicleId, ITelemetryStrategy strategy, CancellationToken token)
+        try
         {
-            var generator = new TelemetryGenerator();
-            var writer = new FileWriterCoordinator(
-                outputDirectory: _settings.OutputDir,
-                metadataWriter: _metadataWriter,
-                maxFileSizeMb: _settings.MaxFileSizeMb,
-                rotationSeconds: _settings.RotationSeconds,
-                backpressureThreshold: _settings.BackpressureThreshold
-            );
-
-            Console.WriteLine($"[{vehicleId}] using {strategy.Name} strategy");
-
-            try
+            while (!token.IsCancellationRequested)
             {
-                while (!token.IsCancellationRequested)
-                {
-                    var record = generator.GenerateTelemetry(vehicleId);
-                    await writer.WriteAsync(record, vehicleId, token);
-                    await Task.Delay(strategy.GetNextInterval(), token);
-                }
-            }
-            catch (TaskCanceledException) { }
-            finally
-            {
-                await writer.CloseAsync(token);
-                Console.WriteLine($"Producer for {vehicleId} stopped gracefully.");
+                var record = generator.GenerateTelemetry(vehicleId);
+                await writer.WriteAsync(record, vehicleId, token);
+                await Task.Delay(strategy.GetNextInterval(), token);
             }
         }
-
-        public async Task StopAsync(CancellationToken cancellationToken)
+        catch (TaskCanceledException) { }
+        finally
         {
-            _cts?.Cancel();
-            if (_runningTask != null)
-                await _runningTask;
-            Console.WriteLine("All producers stopped.");
+            await writer.CloseAsync(token);
+            Console.WriteLine($"Producer for {vehicleId} stopped gracefully.");
         }
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _cts?.Cancel();
+        if (_runningTask != null)
+            await _runningTask;
+        Console.WriteLine("All producers stopped.");
     }
 }

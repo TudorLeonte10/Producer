@@ -1,9 +1,8 @@
-﻿using Producer.Domain.Entities;
+﻿using Microsoft.Extensions.Options;
+using Producer.Application.Config;
+using Producer.Domain.Entities;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Producer.Application.Services
 {
@@ -19,20 +18,16 @@ namespace Producer.Application.Services
         private readonly double _tempVariation;
         private readonly TimeSpan _recordInterval;
 
-        public TelemetryGenerator(
-            double baseSpeed = 70.0,
-            double speedVariation = 15.0,
-            double fuelConsumptionRate = 0.01,  
-            double tempBase = 90.0,
-            double tempVariation = 10.0,
-            TimeSpan? recordInterval = null)
+        public TelemetryGenerator(IOptions<TelemetrySettings> options)
         {
-            _baseSpeed = baseSpeed;
-            _speedVariation = speedVariation;
-            _fuelConsumptionRate = fuelConsumptionRate;
-            _tempBase = tempBase;
-            _tempVariation = tempVariation;
-            _recordInterval = recordInterval ?? TimeSpan.FromSeconds(60);
+            var cfg = options.Value;
+
+            _baseSpeed = cfg.BaseSpeed;
+            _speedVariation = cfg.SpeedVariation;
+            _fuelConsumptionRate = cfg.FuelConsumptionRate;
+            _tempBase = cfg.TempBase;
+            _tempVariation = cfg.TempVariation;
+            _recordInterval = TimeSpan.FromSeconds(cfg.RecordIntervalSeconds);
         }
 
         public TelemetryRecord GenerateTelemetry(string vehicleId)
@@ -47,7 +42,6 @@ namespace Producer.Application.Services
             }
 
             var state = _state[vehicleId];
-
             state.LastTimeStamp = state.LastTimeStamp.Add(_recordInterval);
 
             double speed = _baseSpeed + (_random.NextDouble() * 2 - 1) * _speedVariation;
@@ -58,7 +52,7 @@ namespace Producer.Application.Services
             {
                 fuel = 100.0; 
             }
-            else if (fuel < 20 && _random.NextDouble() < 0.01) 
+            else if (fuel < 20 && _random.NextDouble() < 0.01)
             {
                 fuel = 100.0;
             }
